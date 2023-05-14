@@ -3,13 +3,12 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <iostream>
+#include "src/cliente.h"
 
 #include <stdio.h>
 #include <winsock2.h>
 #define SERVER_IP "127.0.0.1"
 #define SERVER_PORT 6000
-using namespace std;
 
 int main(int argc, char *argv[]) {
 
@@ -40,7 +39,6 @@ int main(int argc, char *argv[]) {
 	server.sin_addr.s_addr = inet_addr(SERVER_IP); //INADDR_ANY;
 	server.sin_family = AF_INET;
 	server.sin_port = htons(SERVER_PORT);
-
 
 	//BIND (the IP/port with socket)
 	if (bind(conn_socket, (struct sockaddr*) &server,
@@ -78,45 +76,56 @@ int main(int argc, char *argv[]) {
 	// Closing the listening sockets (is not going to be used anymore)
 	closesocket(conn_socket);
 	int fin = 0;
+
+	ListaClientes lc;
+	lc.numC = 0;
+	ListaClientes admin;
+	//CLIENTES
+	volcarFicheroAListaClientes(&lc, "Clientes.txt");
+	imprimirListaClientes(lc);
+
+	//ADMINISTRADORES
+	volcarFicheroAListaClientes(&admin, "Administradores.txt");
 	do {
 		/*EMPIEZA EL PROGRAMA DEL SERVIDOR*/
-		char opcion;
-		char nom[20], con[20];
-		int resul;
-		do {
-			recv(comm_socket, recvBuff, sizeof(recvBuff), 0);
-			sscanf(recvBuff, "%c", &opcion);
-			switch (opcion) {
-			case '1':
-
-				break;
-			case '2':
-				recv(comm_socket, recvBuff, sizeof(recvBuff), 0); //Recibe el nombre
-				sprintf(nom, "%s", recvBuff);
-				recv(comm_socket, recvBuff, sizeof(recvBuff), 0); //Recibe la contrase�a
-				sprintf(con, "%s", recvBuff);
-				//La busc�is en la BBDD
-				if (strcmp(nom, "ADMIN") == 0 && strcmp(con, "ADMIN") == 0) {
-					resul = 1;
-				} else if (strcmp(nom, "CLIENTE") == 0 && strcmp(con, "CLIENTE") == 0) {
-					resul = 2;
-				} else {
-					resul = 0;
-				}
-				/*
-				 * resul = 1 es un admin
-				 * resul = 2 es un cliente
-				 * resul = 0 no est� registrado
-				 * */
-				sprintf(sendBuff, "%d", resul);
-				send(comm_socket, sendBuff, sizeof(sendBuff), 0); //Le env�a al cliente 1,2,0
-				break;
-			case '0':
-				fin = 1;
-				cout << "FIN DE LA CONEXI�N";
-				break;
-			}
-		} while (opcion != '0');
+//		char opcion;
+//		char nom[20], con[20];
+//		int resul;
+//		do {
+//			recv(comm_socket, recvBuff, sizeof(recvBuff), 0);
+//			sscanf(recvBuff, "%c", &opcion);
+//			switch (opcion) {
+//			case '1':
+//				printf( "Hemos llegado");
+//				break;
+//			case '2':
+//				recv(comm_socket, recvBuff, sizeof(recvBuff), 0); //Recibe el nombre
+//				sprintf(nom, "%s", recvBuff);
+//				recv(comm_socket, recvBuff, sizeof(recvBuff), 0); //Recibe la contrase�a
+//				sprintf(con, "%s", recvBuff);
+//				//La busc�is en la BBDD
+//				if (strcmp(nom, "ADMIN") == 0 && strcmp(con, "ADMIN") == 0) {
+//					resul = 1;
+//				} else if (strcmp(nom, "CLIENTE") == 0
+//						&& strcmp(con, "CLIENTE") == 0) {
+//					resul = 2;
+//				} else {
+//					resul = 0;
+//				}
+//				/*
+//				 * resul = 1 es un admin
+//				 * resul = 2 es un cliente
+//				 * resul = 0 no est� registrado
+//				 * */
+//				sprintf(sendBuff, "%d", resul);
+//				send(comm_socket, sendBuff, sizeof(sendBuff), 0); //Le env�a al cliente 1,2,0
+//				break;
+//			case '0':
+//				fin = 1;
+//				cout << "FIN DE LA CONEXI�N";
+//				break;
+//			}
+//		} while (opcion != '0');
 
 		/*ACABA EL PROGRAMA DEL SERVIDOR*/
 
