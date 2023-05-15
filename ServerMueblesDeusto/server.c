@@ -82,50 +82,81 @@ int main(int argc, char *argv[]) {
 	ListaClientes admin;
 	//CLIENTES
 	volcarFicheroAListaClientes(&lc, "Clientes.txt");
-	imprimirListaClientes(lc);
+//	imprimirListaClientes(lc);
 
 	//ADMINISTRADORES
+
 	volcarFicheroAListaClientes(&admin, "Administradores.txt");
 	do {
 		/*EMPIEZA EL PROGRAMA DEL SERVIDOR*/
-//		char opcion;
-//		char nom[20], con[20];
-//		int resul;
-//		do {
-//			recv(comm_socket, recvBuff, sizeof(recvBuff), 0);
-//			sscanf(recvBuff, "%c", &opcion);
-//			switch (opcion) {
-//			case '1':
-//				printf( "Hemos llegado");
-//				break;
-//			case '2':
-//				recv(comm_socket, recvBuff, sizeof(recvBuff), 0); //Recibe el nombre
-//				sprintf(nom, "%s", recvBuff);
-//				recv(comm_socket, recvBuff, sizeof(recvBuff), 0); //Recibe la contrase�a
-//				sprintf(con, "%s", recvBuff);
-//				//La busc�is en la BBDD
-//				if (strcmp(nom, "ADMIN") == 0 && strcmp(con, "ADMIN") == 0) {
-//					resul = 1;
-//				} else if (strcmp(nom, "CLIENTE") == 0
-//						&& strcmp(con, "CLIENTE") == 0) {
-//					resul = 2;
-//				} else {
-//					resul = 0;
-//				}
-//				/*
-//				 * resul = 1 es un admin
-//				 * resul = 2 es un cliente
-//				 * resul = 0 no est� registrado
-//				 * */
-//				sprintf(sendBuff, "%d", resul);
-//				send(comm_socket, sendBuff, sizeof(sendBuff), 0); //Le env�a al cliente 1,2,0
-//				break;
-//			case '0':
-//				fin = 1;
-//				cout << "FIN DE LA CONEXI�N";
-//				break;
-//			}
-//		} while (opcion != '0');
+		int opcion;
+		char dni[20],nom[20], con[20];
+		int resul,i,clienteExiste;
+		do {
+			recv(comm_socket, recvBuff, sizeof(recvBuff), 0);
+			sscanf(recvBuff, "%i", &opcion);
+			switch (opcion) {
+			case 1:
+				recv(comm_socket, recvBuff, sizeof(recvBuff), 0); //Recibe el dni
+				sprintf(dni, "%s", recvBuff);
+				printf("Recibido: %s\n",dni);fflush(stdout);
+				clienteExiste = 0;
+				for (i = 0; i < lc.numC; i++) {
+					if (strcmp(dni, lc.aClientes[i].dni) == 0) { //Compramos el dni del cliente nuevo con el resto de nuestros clientes
+						clienteExiste = 1;
+						break;
+					}
+				}
+				sprintf(sendBuff,"%d",clienteExiste);
+				send(comm_socket, sendBuff, sizeof(sendBuff), 0);
+				if(!clienteExiste){
+					recv(comm_socket, recvBuff, sizeof(recvBuff), 0); //Recibe el nombre
+					sprintf(nom, "%s", recvBuff);
+					printf("Recibido: %s\n",nom);fflush(stdout);
+					recv(comm_socket, recvBuff, sizeof(recvBuff), 0); //Recibe el nombre
+					sprintf(con, "%s", recvBuff);
+					printf("Recibido: %s\n",con);fflush(stdout);
+					Cliente nuevoCliente;
+					strcpy(nuevoCliente.dni,dni);
+					strcpy(nuevoCliente.usuario,nom);
+					strcpy(nuevoCliente.contrasena,con);
+					anadirClientesALista(&lc, nuevoCliente);
+					volcarListaClientesAFichero(&lc, "Clientes.txt");
+					printf("Añadido\n");fflush(stdout);
+				}else{
+					printf("Cliente ya existe\n");fflush(stdout);
+				}
+
+
+				break;
+			case 2:
+				recv(comm_socket, recvBuff, sizeof(recvBuff), 0); //Recibe el nombre
+				sprintf(nom, "%s", recvBuff);
+				recv(comm_socket, recvBuff, sizeof(recvBuff), 0); //Recibe la contrase�a
+				sprintf(con, "%s", recvBuff);
+				//La busc�is en la BBDD
+				if (strcmp(nom, "ADMIN") == 0 && strcmp(con, "ADMIN") == 0) {
+					resul = 1;
+				} else if (strcmp(nom, "CLIENTE") == 0
+						&& strcmp(con, "CLIENTE") == 0) {
+					resul = 2;
+				} else {
+					resul = 0;
+				}
+				/*
+				 * resul = 1 es un admin
+				 * resul = 2 es un cliente
+				 * resul = 0 no est� registrado
+				 * */
+				sprintf(sendBuff, "%d", resul);
+				send(comm_socket, sendBuff, sizeof(sendBuff), 0); //Le env�a al cliente 1,2,0
+				break;
+			case 0:
+				fin = 1;
+				printf("FIN DE LA CONEXI�N");
+				break;
+			}
+		} while (opcion != '0');
 
 		/*ACABA EL PROGRAMA DEL SERVIDOR*/
 
