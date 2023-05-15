@@ -1,6 +1,6 @@
 #include <stdio.h>
 #include "categoria.h"
-
+//Prueba
 int imprimirListaCategorias() {
 	int categoria;
 	char get[2] ="";
