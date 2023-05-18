@@ -4,13 +4,39 @@
 #include <stdlib.h>
 #include <string.h>
 #include "src/cliente.h"
+#include "src/bbdd/consultas.h"
 
 #include <stdio.h>
 #include <winsock2.h>
 #define SERVER_IP "127.0.0.1"
 #define SERVER_PORT 6000
 
+void leerConfig(char * nomfich, char *nombd){
+	FILE *pf;
+
+	pf = fopen(nomfich,"r");
+	if(pf!=(FILE*)NULL){
+		fscanf(pf,"%s",nombd);
+		fclose(pf);
+	}
+}
+
 int main(int argc, char *argv[]) {
+	/*AÑADIMOS LO NECESARIO PARA LA BBDD*/
+
+	sqlite3 *db;
+	char nombd[50];
+
+	leerConfig("Configuracion.conf", nombd);
+	int rc = sqlite3_open(nombd, &db);
+	if (rc != SQLITE_OK) {
+		printf("Error abriendo la base de datos: %s\n", sqlite3_errmsg(db));
+		fflush(stdout);
+		sqlite3_close(db);
+		return 1;
+	}
+
+
 
 	WSADATA wsaData;
 	SOCKET conn_socket; //el que lleva la conexion
@@ -87,11 +113,19 @@ int main(int argc, char *argv[]) {
 	//ADMINISTRADORES
 
 	volcarFicheroAListaClientes(&admin, "Administradores.txt");
+
+	ListaProductos productoBD;
+
+	volcarAListaProductosBD(db, &productoBD);
+
+
 	do {
 		/*EMPIEZA EL PROGRAMA DEL SERVIDOR*/
-		int opcion;
-		char dni[20],nom[20], con[20];
-		int resul,i,clienteExiste;
+		int opcion, opcion2;
+		char dni[20], nom[20], con[20], cod[20], desc[20];
+		int cantidad, tipo;
+		double precio = 0;
+		int resul, i, clienteExiste, adminExiste;
 		do {
 			recv(comm_socket, recvBuff, sizeof(recvBuff), 0);
 			sscanf(recvBuff, "%i", &opcion);
@@ -99,7 +133,8 @@ int main(int argc, char *argv[]) {
 			case 1:
 				recv(comm_socket, recvBuff, sizeof(recvBuff), 0); //Recibe el dni
 				sprintf(dni, "%s", recvBuff);
-				printf("Recibido: %s\n",dni);fflush(stdout);
+				printf("Recibido: %s\n", dni);
+				fflush(stdout);
 				clienteExiste = 0;
 				for (i = 0; i < lc.numC; i++) {
 					if (strcmp(dni, lc.aClientes[i].dni) == 0) { //Compramos el dni del cliente nuevo con el resto de nuestros clientes
@@ -107,42 +142,61 @@ int main(int argc, char *argv[]) {
 						break;
 					}
 				}
-				sprintf(sendBuff,"%d",clienteExiste);
+				sprintf(sendBuff, "%d", clienteExiste);
 				send(comm_socket, sendBuff, sizeof(sendBuff), 0);
-				if(!clienteExiste){
+				if (!clienteExiste) {
 					recv(comm_socket, recvBuff, sizeof(recvBuff), 0); //Recibe el nombre
 					sprintf(nom, "%s", recvBuff);
-					printf("Recibido: %s\n",nom);fflush(stdout);
+					printf("Recibido: %s\n", nom);
+					fflush(stdout);
 					recv(comm_socket, recvBuff, sizeof(recvBuff), 0); //Recibe el nombre
 					sprintf(con, "%s", recvBuff);
-					printf("Recibido: %s\n",con);fflush(stdout);
+					printf("Recibido: %s\n", con);
+					fflush(stdout);
 					Cliente nuevoCliente;
-					strcpy(nuevoCliente.dni,dni);
-					strcpy(nuevoCliente.usuario,nom);
-					strcpy(nuevoCliente.contrasena,con);
+					strcpy(nuevoCliente.dni, dni);
+					strcpy(nuevoCliente.usuario, nom);
+					strcpy(nuevoCliente.contrasena, con);
 					anadirClientesALista(&lc, nuevoCliente);
 					volcarListaClientesAFichero(&lc, "Clientes.txt");
-					printf("Añadido\n");fflush(stdout);
-				}else{
-					printf("Cliente ya existe\n");fflush(stdout);
+					printf("Añadido\n");
+					fflush(stdout);
+				} else {
+					printf("Cliente ya existe\n");
+					fflush(stdout);
 				}
-
-
 				break;
 			case 2:
+				clienteExiste = 0;
+				adminExiste = 0;
 				recv(comm_socket, recvBuff, sizeof(recvBuff), 0); //Recibe el nombre
 				sprintf(nom, "%s", recvBuff);
 				recv(comm_socket, recvBuff, sizeof(recvBuff), 0); //Recibe la contrase�a
 				sprintf(con, "%s", recvBuff);
 				//La busc�is en la BBDD
-				if (strcmp(nom, "ADMIN") == 0 && strcmp(con, "ADMIN") == 0) {
-					resul = 1;
-				} else if (strcmp(nom, "CLIENTE") == 0
-						&& strcmp(con, "CLIENTE") == 0) {
-					resul = 2;
-				} else {
-					resul = 0;
+				for (i = 0; i < lc.numC; i++) {
+					if ((strcmp(nom, lc.aClientes[i].usuario) == 0)
+							&& (strcmp(con, lc.aClientes[i].contrasena) == 0)) {
+						clienteExiste = 1;
+						strcpy(dni, buscarDniUsuario(lc, nom));
+						sprintf(sendBuff, "%s", dni);
+						send(comm_socket, sendBuff, sizeof(sendBuff), 0);
+						break;
+					}
 				}
+				sprintf(sendBuff, "%d", clienteExiste);
+				send(comm_socket, sendBuff, sizeof(sendBuff), 0);
+
+				for (i = 0; i < admin.numC; i++) {
+					if ((strcmp(nom, admin.aClientes[i].usuario) == 0)
+							&& (strcmp(con, admin.aClientes[i].contrasena) == 0)) {
+						adminExiste = 1;
+						break;
+					}
+				}
+				sprintf(sendBuff, "%d", adminExiste);
+				send(comm_socket, sendBuff, sizeof(sendBuff), 0);
+
 				/*
 				 * resul = 1 es un admin
 				 * resul = 2 es un cliente
@@ -150,6 +204,51 @@ int main(int argc, char *argv[]) {
 				 * */
 				sprintf(sendBuff, "%d", resul);
 				send(comm_socket, sendBuff, sizeof(sendBuff), 0); //Le env�a al cliente 1,2,0
+				if (adminExiste) {
+					do {
+						recv(comm_socket, recvBuff, sizeof(recvBuff), 0);
+						sscanf(recvBuff, "%i", &opcion2);
+						switch (opcion2) {
+						case 1:
+							//Recibe los datos del nuevo producto para añadir a la BD
+							recv(comm_socket, recvBuff, sizeof(recvBuff), 0); //Recibe el nombre
+							sprintf(cod, "%s", recvBuff);
+							recv(comm_socket, recvBuff, sizeof(recvBuff), 0); //Recibe el nombre
+							sprintf(nom, "%s", recvBuff);
+							recv(comm_socket, recvBuff, sizeof(recvBuff), 0); //Recibe el nombre
+							sprintf(desc, "%s", recvBuff);
+							recv(comm_socket, recvBuff, sizeof(recvBuff), 0); //Recibe el nombre
+							sscanf(cantidad, "%i", recvBuff);
+							recv(comm_socket, recvBuff, sizeof(recvBuff), 0); //Recibe el nombre
+							sscanf(recvBuff, "%d", precio);
+							recv(comm_socket, recvBuff, sizeof(recvBuff), 0); //Recibe el nombre
+							sscanf(tipo, "%i", recvBuff);
+							Producto nuevoProducto;
+							strcpy(nuevoProducto.cod_p, cod);
+							strcpy(nuevoProducto.nombre, nom);
+							strcpy(nuevoProducto.descripcion, desc);
+							nuevoProducto.cantidad = cantidad;
+							nuevoProducto.precio = precio;
+							nuevoProducto.tipo = tipo;
+							sqlite3_open(nombd, &db);
+							insertarProductoBD(db, nuevoProducto);
+							sqlite3_close(db);
+							printf("SE ha intentado"); fflush(stdout);
+							break;
+						case 2:
+							break;
+						case 3:
+							imprimirListaProductos(productoBD);
+							break;
+						case 4:
+							break;
+						case 5:
+							break;
+
+						}
+					} while (opcion != 0);
+				}
+
 				break;
 			case 0:
 				fin = 1;

@@ -2,7 +2,7 @@
 #define BBDD_CONSULTAS_H_
 
 #include "sqlite3.h"
-#include "../carrito.h"
+//#include "../carrito.h"
 #include "../categoria.h"
 #include "../cliente.h"
 #include "../producto.h"
