@@ -2,7 +2,7 @@
 #define PRODUCTO_H_
 #include "categoria.h"
 #include "cliente.h"
-
+#include <winsock2.h>
 typedef struct{
     char cod_p[10];
     char nombre[20];
@@ -20,6 +20,7 @@ typedef struct{
 void quitarSalto(char *cad);
 //ADMIN
 void anadirProducto(ListaProductos *lp);
+void anadirProductoLista(ListaProductos *lp, Producto p);
 ListaProductos buscarProducto(ListaProductos lp, CategoriaProducto c);
 void modificarProducto(Producto *p);
 void volcarFicheroAListaProductos(ListaProductos *lp, char *nombreFichero);
@@ -43,4 +44,6 @@ Producto anadirProductoBD();
 int buscarProductoCategoria();
 Producto* buscarProd(ListaProductos lista, char *codigo);
 
+
+void enviarListaProductos(ListaProductos lp, SOCKET comm_socket, char *sendBuff);
 #endif /* PRODUCTO_H_ */

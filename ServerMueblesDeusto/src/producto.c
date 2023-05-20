@@ -48,7 +48,6 @@ ListaProductos buscarProducto(ListaProductos lp, CategoriaProducto c) {
 	return lpCategoria;
 }
 
-
 //CLIENTE
 void devolverProducto(ListaProductos *lp, Producto nombreProducto) {
 	Producto p;
@@ -103,6 +102,30 @@ void imprimirListaProductos(ListaProductos lp) {
 	}
 }
 
+void enviarListaProductos(ListaProductos lp, SOCKET comm_socket, char *sendBuff) {
+	printf("\nLista de productos de MueblesDeusto: \n");
+	fflush(stdout);
+	sprintf(sendBuff, "%d", lp.numProductos);
+	send(comm_socket, sendBuff, sizeof(sendBuff), 0);
+	printf("Enviando: %s", sendBuff);
+	for (int i = 0; i < lp.numProductos; i++) {
+		sprintf(sendBuff, "%s", lp.aProductos[i].cod_p);
+		send(comm_socket, sendBuff, sizeof(sendBuff), 0);
+		printf("Enviando: %s", sendBuff);
+		/*printf("NOMBRE: %s, ", lp.aProductos[i].nombre);
+		 fflush(stdout);
+		 printf("DESCRIPCION: %s, ", lp.aProductos[i].descripcion);
+		 fflush(stdout);
+		 printf("CANTIDAD: %d, ", lp.aProductos[i].cantidad);
+		 fflush(stdout);
+		 printf("PRECIO: %.2f, ", lp.aProductos[i].precio);
+		 fflush(stdout);
+		 printf("CATEGORIA: %s]\n",
+		 obtenerNombreCategoria(lp.aProductos[i].tipo));
+		 fflush(stdout);*/
+	}
+}
+
 void volcarFicheroAListaProductos(ListaProductos *lp, char *nombreFichero) {
 	FILE *pf;
 	int tam;
@@ -139,7 +162,7 @@ Producto nombreProductoBorrar() {
 	fflush(stdout);
 	fflush(stdin);
 	fgets(get, 20, stdin);
-	if(get[strlen(get)-1]=='\n')
+	if (get[strlen(get) - 1] == '\n')
 		get[strlen(get) - 1] = '\0';
 	sprintf(p.cod_p, "%s", get);
 	return p;
@@ -194,9 +217,9 @@ Producto codigoProductoModificar() {
 	return p;
 }
 
-void quitarSalto(char *cad){
-	if(cad[strlen(cad)-1]=='\n')
-		cad[strlen(cad)-1] = '\0';
+void quitarSalto(char *cad) {
+	if (cad[strlen(cad) - 1] == '\n')
+		cad[strlen(cad) - 1] = '\0';
 }
 
 Producto anadirProductoBD() {
@@ -263,4 +286,28 @@ Producto* buscarProd(ListaProductos lista, char *codigo) {
 		}
 	}
 	return p;
+}
+
+void anadirProductoLista(ListaProductos *lp, Producto p) {
+	if (lp == NULL) {
+		printf("Error: Lista de productos no válida.\n");
+		return;
+	}
+
+	lp->aProductos = realloc(lp->aProductos,
+			(lp->numProductos + 1) * sizeof(Producto));
+	if (lp->aProductos == NULL) {
+		printf("Error: No se pudo asignar memoria para el nuevo producto.\n");
+		return;
+	}
+
+	Producto *nuevoProducto = &(lp->aProductos[lp->numProductos]);
+	strcpy(nuevoProducto->cod_p, p.cod_p);
+	strcpy(nuevoProducto->nombre, p.nombre);
+	strcpy(nuevoProducto->descripcion, p.descripcion);
+	nuevoProducto->cantidad = p.cantidad;
+	nuevoProducto->precio = p.precio;
+	nuevoProducto->tipo = p.tipo;
+
+	lp->numProductos++;
 }

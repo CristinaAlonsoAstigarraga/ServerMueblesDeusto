@@ -11,12 +11,12 @@
 #define SERVER_IP "127.0.0.1"
 #define SERVER_PORT 6000
 
-void leerConfig(char * nomfich, char *nombd){
+void leerConfig(char *nomfich, char *nombd) {
 	FILE *pf;
 
-	pf = fopen(nomfich,"r");
-	if(pf!=(FILE*)NULL){
-		fscanf(pf,"%s",nombd);
+	pf = fopen(nomfich, "r");
+	if (pf != (FILE*) NULL) {
+		fscanf(pf, "%s", nombd);
 		fclose(pf);
 	}
 }
@@ -35,8 +35,7 @@ int main(int argc, char *argv[]) {
 		sqlite3_close(db);
 		return 1;
 	}
-
-
+	sqlite3_close(db);
 
 	WSADATA wsaData;
 	SOCKET conn_socket; //el que lleva la conexion
@@ -115,10 +114,26 @@ int main(int argc, char *argv[]) {
 	volcarFicheroAListaClientes(&admin, "Administradores.txt");
 
 	ListaProductos productoBD;
+//	productoBD.numProductos = 0;
+//	productoBD.aProductos = NULL;
+
+	rc = sqlite3_open(nombd, &db);
+	if (rc != SQLITE_OK) {
+		printf("Error abriendo la base de datos: %s\n", sqlite3_errmsg(db));
+		fflush(stdout);
+		sqlite3_close(db);
+		return 1;
+	}
 
 	volcarAListaProductosBD(db, &productoBD);
+	imprimirListaProductos(productoBD);
+	sqlite3_close(db);
 
-
+	printf("Número de productos de la lista: %i\n", productoBD.numProductos);
+	fflush(stdout);
+//	for(int i=0; i<productoBD.numProductos; i++){
+//		printf("\n", productoBD.aProductos[i].cod_p);fflush(stdout);
+//	}
 	do {
 		/*EMPIEZA EL PROGRAMA DEL SERVIDOR*/
 		int opcion, opcion2;
@@ -133,11 +148,9 @@ int main(int argc, char *argv[]) {
 			case 1:
 				recv(comm_socket, recvBuff, sizeof(recvBuff), 0); //Recibe el dni
 				sprintf(dni, "%s", recvBuff);
-				printf("Recibido: %s\n", dni);
-				fflush(stdout);
 				clienteExiste = 0;
 				for (i = 0; i < lc.numC; i++) {
-					if (strcmp(dni, lc.aClientes[i].dni) == 0) { //Compramos el dni del cliente nuevo con el resto de nuestros clientes
+					if (strcmp(dni, lc.aClientes[i].dni) == 0) { //Comparamos el dni del cliente nuevo con el resto de nuestros clientes
 						clienteExiste = 1;
 						break;
 					}
@@ -147,12 +160,8 @@ int main(int argc, char *argv[]) {
 				if (!clienteExiste) {
 					recv(comm_socket, recvBuff, sizeof(recvBuff), 0); //Recibe el nombre
 					sprintf(nom, "%s", recvBuff);
-					printf("Recibido: %s\n", nom);
-					fflush(stdout);
 					recv(comm_socket, recvBuff, sizeof(recvBuff), 0); //Recibe el nombre
 					sprintf(con, "%s", recvBuff);
-					printf("Recibido: %s\n", con);
-					fflush(stdout);
 					Cliente nuevoCliente;
 					strcpy(nuevoCliente.dni, dni);
 					strcpy(nuevoCliente.usuario, nom);
@@ -184,6 +193,10 @@ int main(int argc, char *argv[]) {
 						break;
 					}
 				}
+				if (!clienteExiste) {
+					sprintf(sendBuff, "NULL");
+					send(comm_socket, sendBuff, sizeof(sendBuff), 0);
+				}
 				sprintf(sendBuff, "%d", clienteExiste);
 				send(comm_socket, sendBuff, sizeof(sendBuff), 0);
 
@@ -197,32 +210,57 @@ int main(int argc, char *argv[]) {
 				sprintf(sendBuff, "%d", adminExiste);
 				send(comm_socket, sendBuff, sizeof(sendBuff), 0);
 
-				/*
-				 * resul = 1 es un admin
-				 * resul = 2 es un cliente
-				 * resul = 0 no est� registrado
-				 * */
-				sprintf(sendBuff, "%d", resul);
-				send(comm_socket, sendBuff, sizeof(sendBuff), 0); //Le env�a al cliente 1,2,0
-				if (adminExiste) {
+				if (clienteExiste) {
 					do {
 						recv(comm_socket, recvBuff, sizeof(recvBuff), 0);
 						sscanf(recvBuff, "%i", &opcion2);
 						switch (opcion2) {
 						case 1:
+							break;
+						case 2:
+							sqlite3_open(nombd, &db);
+							//enviarListaProductos(productoBD, comm_socket, sendBuff);
+							sprintf(sendBuff, "%d", productoBD.numProductos);
+							send(comm_socket, sendBuff, sizeof(sendBuff), 0);
+							printf("Enviando: %s", sendBuff);
+							/*for (int i = 0; i < productoBD.numProductos; i++) {
+							 sprintf(sendBuff, "%s", productoBD.aProductos[i].cod_p);
+							 send(comm_socket, sendBuff, sizeof(sendBuff), 0);
+							 printf("Enviando: %s", sendBuff);
+							 }*/
+							break;
+						case 3:
+
+							break;
+						case 4:
+							imprimirListaProductos(productoBD);
+							break;
+						case 5:
+							break;
+
+						}
+					} while (opcion != 0);
+
+				} else if (adminExiste) {
+					do {
+						recv(comm_socket, recvBuff, sizeof(recvBuff), 0);
+						sscanf(recvBuff, "%i", &opcion2);
+						switch (opcion2) {
+						case 1:
+							printf("Servidor, opción 2\n");
 							//Recibe los datos del nuevo producto para añadir a la BD
-							recv(comm_socket, recvBuff, sizeof(recvBuff), 0); //Recibe el nombre
+							recv(comm_socket, recvBuff, sizeof(recvBuff), 0); //Recibe el codigo
 							sprintf(cod, "%s", recvBuff);
 							recv(comm_socket, recvBuff, sizeof(recvBuff), 0); //Recibe el nombre
 							sprintf(nom, "%s", recvBuff);
-							recv(comm_socket, recvBuff, sizeof(recvBuff), 0); //Recibe el nombre
+							recv(comm_socket, recvBuff, sizeof(recvBuff), 0); //Recibe la descripción
 							sprintf(desc, "%s", recvBuff);
-							recv(comm_socket, recvBuff, sizeof(recvBuff), 0); //Recibe el nombre
-							sscanf(cantidad, "%i", recvBuff);
-							recv(comm_socket, recvBuff, sizeof(recvBuff), 0); //Recibe el nombre
-							sscanf(recvBuff, "%d", precio);
-							recv(comm_socket, recvBuff, sizeof(recvBuff), 0); //Recibe el nombre
-							sscanf(tipo, "%i", recvBuff);
+							recv(comm_socket, recvBuff, sizeof(recvBuff), 0); //Recibe la cantidad
+							sscanf(recvBuff, "%i", &cantidad);
+							recv(comm_socket, recvBuff, sizeof(recvBuff), 0); //Recibe el precio
+							sscanf(recvBuff, "%lf", &precio);
+							recv(comm_socket, recvBuff, sizeof(recvBuff), 0); //Recibe el tipo
+							sscanf(recvBuff, "%i", &tipo);
 							Producto nuevoProducto;
 							strcpy(nuevoProducto.cod_p, cod);
 							strcpy(nuevoProducto.nombre, nom);
@@ -230,17 +268,48 @@ int main(int argc, char *argv[]) {
 							nuevoProducto.cantidad = cantidad;
 							nuevoProducto.precio = precio;
 							nuevoProducto.tipo = tipo;
+							//sqlite3_open(nombd, &db);
 							sqlite3_open(nombd, &db);
 							insertarProductoBD(db, nuevoProducto);
 							sqlite3_close(db);
-							printf("SE ha intentado"); fflush(stdout);
+							printf("SE ha intentado");
+							fflush(stdout);
+							anadirProductoLista(&productoBD, nuevoProducto);
 							break;
 						case 2:
+							/*
+							 * sqlite3_open(nombd, &db);
+							mostrarProductosBD(db);
+							sqlite3_close(db);
+							printf(
+									"\nEstás seguro de querer modificar un producto?(si: 1, no: 0): ");
+							fflush(stdout);
+							fflush(stdin);
+							fgets(get, sizeof(get), stdin);
+							sscanf(get, "%d", &resultado);
+							if (resultado == 1) {
+								nombreProducto = codigoProductoModificar();
+								nuevaCantidad = nuevaCantidadProducto();
+								sqlite3_open(nombd, &db);
+								modificarCantidadProductoBD(db,
+										nombreProducto.cod_p, nuevaCantidad);
+								sqlite3_close(db);
+								break;
+							}
+
+							 *
+							 */
+							sqlite3_open(nombd, &db);
+							mostrarProductosBD(db);
+							sqlite3_close(db);
 							break;
 						case 3:
-							imprimirListaProductos(productoBD);
+
 							break;
 						case 4:
+//							sqlite3_open(nombd, &db);
+							imprimirListaProductos(productoBD);
+//							sqlite3_close(db);
 							break;
 						case 5:
 							break;
