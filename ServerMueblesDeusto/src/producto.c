@@ -111,7 +111,18 @@ void enviarListaProductos(ListaProductos lp, SOCKET comm_socket, char *sendBuff)
 	for (int i = 0; i < lp.numProductos; i++) {
 		sprintf(sendBuff, "%s", lp.aProductos[i].cod_p);
 		send(comm_socket, sendBuff, sizeof(sendBuff), 0);
-		printf("Enviando: %s", sendBuff);
+		sprintf(sendBuff, "%s", lp.aProductos[i].nombre);
+		send(comm_socket, sendBuff, sizeof(sendBuff), 0);
+		sprintf(sendBuff, "%s", lp.aProductos[i].descripcion);
+		send(comm_socket, sendBuff, sizeof(sendBuff), 0);
+		sprintf(sendBuff, "%i",  lp.aProductos[i].cantidad);
+		send(comm_socket, sendBuff, sizeof(sendBuff), 0);
+		sprintf(sendBuff, "%lf",  lp.aProductos[i].precio);
+		send(comm_socket, sendBuff, sizeof(sendBuff), 0);
+		sprintf(sendBuff, "%i",  lp.aProductos[i].tipo);
+		send(comm_socket, sendBuff, sizeof(sendBuff), 0);
+
+//		printf("Enviando: %s", sendBuff);
 		/*printf("NOMBRE: %s, ", lp.aProductos[i].nombre);
 		 fflush(stdout);
 		 printf("DESCRIPCION: %s, ", lp.aProductos[i].descripcion);

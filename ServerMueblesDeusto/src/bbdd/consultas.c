@@ -188,7 +188,7 @@ void volcarListaProductosABD(sqlite3 *db, ListaProductos *lista) {
 	}
 }
 
-int buscarProductoCaro(sqlite3 *db) {
+Producto buscarProductoCaro(sqlite3 *db) {
 	char sql[] = "SELECT * FROM producto ORDER BY precio DESC LIMIT 1";
 	sqlite3_stmt *stmt;
 	int rc;
@@ -198,14 +198,14 @@ int buscarProductoCaro(sqlite3 *db) {
 	if (rc != SQLITE_OK) {
 		fprintf(stderr, "Error preparando statement: %s\n", sqlite3_errmsg(db));
 		sqlite3_finalize(stmt);
-		return -1;
+//		return NULL;
 	}
 
 	rc = sqlite3_step(stmt);
 	if (rc != SQLITE_ROW) {
 		fprintf(stderr, "Error ejecutando statement: %s\n", sqlite3_errmsg(db));
 		sqlite3_finalize(stmt);
-		return -1;
+//		return NULL;
 	}
 
 	strncpy(producto.cod_p, sqlite3_column_text(stmt, 0),
@@ -219,28 +219,28 @@ int buscarProductoCaro(sqlite3 *db) {
 	producto.tipo = sqlite3_column_int(stmt, 5);
 
 	//Imprimimos los datos del producto más caro
-	printf("[Código: %s, ", producto.cod_p);
-	printf("Nombre: %s, ", producto.nombre);
-	printf("Descripción: %s, ", producto.descripcion);
-	printf("Cantidad: %d, ", producto.cantidad);
-	printf("Precio: %.2f, ", producto.precio);
-	//Imprimimos el nombre de la categoría
-	switch (producto.tipo) {
-	case MESAS:
-		printf("Categoria: MESAS]\n");
-		break;
-	case SILLAS:
-		printf("Categoria: SILLAS]\n");
-		break;
-	case SOFAS:
-		printf("Categoria: SOFAS]\n");
-		break;
-	default:
-		printf("Categoria: Desconocida]\n");
-		break;
-	}
+//	printf("[Código: %s, ", producto.cod_p);
+//	printf("Nombre: %s, ", producto.nombre);
+//	printf("Descripción: %s, ", producto.descripcion);
+//	printf("Cantidad: %d, ", producto.cantidad);
+//	printf("Precio: %.2f, ", producto.precio);
+//	//Imprimimos el nombre de la categoría
+//	switch (producto.tipo) {
+//	case MESAS:
+//		printf("Categoria: MESAS]\n");
+//		break;
+//	case SILLAS:
+//		printf("Categoria: SILLAS]\n");
+//		break;
+//	case SOFAS:
+//		printf("Categoria: SOFAS]\n");
+//		break;
+//	default:
+//		printf("Categoria: Desconocida]\n");
+//		break;
+//	}
 	sqlite3_finalize(stmt);
-	return 0;
+	return producto;
 }
 
 int numeroProductosCategoria(sqlite3 *db) {
@@ -477,6 +477,64 @@ int mostrarProductosCategoriaBD(sqlite3 *db, int categoria) {
 	return 0;
 }
 
+
+//ListaProductos mostrarProductosCategoriaBDLista(sqlite3 *db, int categoria) {
+//	ListaProductos listaCategoria;
+//	char *sql;
+//	switch (categoria) {
+//	case 0:
+//		sql = "SELECT * FROM producto WHERE tipo = '0';";
+//		break;
+//	case 1:
+//		sql = "SELECT * FROM producto WHERE tipo = '1';";
+//		break;
+//	case 2:
+//		sql = "SELECT * FROM producto WHERE tipo = '2';";
+//		break;
+//	default:
+//		printf("Categoría no válida\n");
+//		return 1;
+//	}
+//
+//	sqlite3_stmt *stmt;
+//	int rc = sqlite3_prepare_v2(db, sql, -1, &stmt, NULL);
+//
+//	if (rc != SQLITE_OK) {
+//		printf("Error preparando la consulta: %s\n", sqlite3_errmsg(db));
+//		sqlite3_finalize(stmt);
+//		return 1;
+//	}
+//
+////	printf("\n%-10s %-10s %-15s %-10s %-10s %-10s\n", "cod_p", "nombre",
+////			"descripcion", "cantidad", "precio", "tipo");
+////	printf(
+////			"-----------------------------------------------------------------\n");
+//
+//	while (sqlite3_step(stmt) == SQLITE_ROW) {
+//		Producto p;
+//		char *cod_p = (char*) sqlite3_column_text(stmt, 0);
+//		char *nombre = (char*) sqlite3_column_text(stmt, 1);
+//		char *descripcion = (char*) sqlite3_column_text(stmt, 2);
+//		int cantidad = sqlite3_column_int(stmt, 3);
+//		double precio = sqlite3_column_double(stmt, 4);
+//		char *tipo = (char*) sqlite3_column_text(stmt, 5);
+//
+////		printf("%-10s %-10s %-15s %-10d %-10.2f %-10s\n", cod_p, nombre,
+////				descripcion, cantidad, precio, tipo);
+//		strcpy(p.cod_p, cod_p);
+//		strcpy(p.nombre, nombre);
+//		strcyp(p.descripcion, descripcion);
+//		p.cantidad = cantidad;
+//		p.precio = precio;
+//		strcpy(p.tipo, tipo);
+//
+//		aniadirProductoLista(p);
+//
+//	}
+//
+//	sqlite3_finalize(stmt);
+//	return listaCategoria;
+//}
 int devolverProductoBD(sqlite3 *db, Producto p) {
 	char sql[200];
 	sqlite3_stmt *stmt;

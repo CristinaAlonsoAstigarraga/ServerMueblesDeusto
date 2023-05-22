@@ -102,12 +102,19 @@ int main(int argc, char *argv[]) {
 	closesocket(conn_socket);
 	int fin = 0;
 
+	Producto modificarP;
+	Producto eliminarP;
+	Producto caro;
+	Producto mayorCantidad;
 	ListaClientes lc;
 	lc.numC = 0;
 	ListaClientes admin;
+	Producto codigoProductoDevolver;
+	ListaProductos listaCategoria;
 	//CLIENTES
 	volcarFicheroAListaClientes(&lc, "Clientes.txt");
 //	imprimirListaClientes(lc);
+	int categoria;
 
 	//ADMINISTRADORES
 
@@ -126,11 +133,11 @@ int main(int argc, char *argv[]) {
 	}
 
 	volcarAListaProductosBD(db, &productoBD);
-	imprimirListaProductos(productoBD);
+//	imprimirListaProductos(productoBD);
 	sqlite3_close(db);
 
-	printf("Número de productos de la lista: %i\n", productoBD.numProductos);
-	fflush(stdout);
+//	printf("Número de productos de la lista: %i\n", productoBD.numProductos);
+//	fflush(stdout);
 //	for(int i=0; i<productoBD.numProductos; i++){
 //		printf("\n", productoBD.aProductos[i].cod_p);fflush(stdout);
 //	}
@@ -138,9 +145,9 @@ int main(int argc, char *argv[]) {
 		/*EMPIEZA EL PROGRAMA DEL SERVIDOR*/
 		int opcion, opcion2;
 		char dni[20], nom[20], con[20], cod[20], desc[20];
-		int cantidad, tipo;
+		int cantidad, tipo, modif;
 		double precio = 0;
-		int resul, i, clienteExiste, adminExiste;
+		int resul, i, clienteExiste, adminExiste, nuevaCantidad;
 		do {
 			recv(comm_socket, recvBuff, sizeof(recvBuff), 0);
 			sscanf(recvBuff, "%i", &opcion);
@@ -218,22 +225,49 @@ int main(int argc, char *argv[]) {
 						case 1:
 							break;
 						case 2:
+							enviarListaProductos(productoBD, comm_socket,
+									sendBuff);
+							recv(comm_socket, recvBuff, sizeof(recvBuff), 0); //Recibe el codigo del producto a devolver
+							sprintf(codigoProductoDevolver.cod_p, "%s",
+									recvBuff);
+							devolverProducto(&productoBD,
+									codigoProductoDevolver);
+							enviarListaProductos(productoBD, comm_socket,
+									sendBuff);
 							sqlite3_open(nombd, &db);
-							//enviarListaProductos(productoBD, comm_socket, sendBuff);
-							sprintf(sendBuff, "%d", productoBD.numProductos);
-							send(comm_socket, sendBuff, sizeof(sendBuff), 0);
-							printf("Enviando: %s", sendBuff);
-							/*for (int i = 0; i < productoBD.numProductos; i++) {
-							 sprintf(sendBuff, "%s", productoBD.aProductos[i].cod_p);
-							 send(comm_socket, sendBuff, sizeof(sendBuff), 0);
-							 printf("Enviando: %s", sendBuff);
-							 }*/
+							devolverProductoBD(db, codigoProductoDevolver);
+							sqlite3_close(db);
 							break;
 						case 3:
-
+							enviarListaProductos(productoBD, comm_socket,
+									sendBuff);
 							break;
 						case 4:
-							imprimirListaProductos(productoBD);
+//							imprimirListaProductos(productoBD);
+//							recv(comm_socket, recvBuff, sizeof(recvBuff), 0);
+//							sscanf(recvBuff, "%i", &categoria);
+//							if (categoria == 0) {
+//								sqlite3_open(nombd, &db);
+//								devolverProductoBD(db, codigoProductoDevolver);
+//								sqlite3_close(db);
+//							} else if (categoria == 1) {
+//								sqlite3_open(nombd, &db);
+//								devolverProductoBD(db, codigoProductoDevolver);
+//								sqlite3_close(db);
+//							} else if (categoria == 2) {
+//								sqlite3_open(nombd, &db);
+//								devolverProductoBD(db, codigoProductoDevolver);
+//								sqlite3_close(db);
+//							} else {
+//								printf(
+//										"Error, no ha introducido una categoria válida. ")
+//							}
+//							sqlite3_open(nombd, &db);
+//							mostrarProductosCategoriaBDLista(db, codigoProductoDevolver);
+//							sqlite3_close(db);
+//							enviarListaProductos(listaCategoria, comm_socket,
+//																sendBuff);
+
 							break;
 						case 5:
 							break;
@@ -277,41 +311,36 @@ int main(int argc, char *argv[]) {
 							anadirProductoLista(&productoBD, nuevoProducto);
 							break;
 						case 2:
-							/*
-							 * sqlite3_open(nombd, &db);
-							mostrarProductosBD(db);
-							sqlite3_close(db);
-							printf(
-									"\nEstás seguro de querer modificar un producto?(si: 1, no: 0): ");
-							fflush(stdout);
-							fflush(stdin);
-							fgets(get, sizeof(get), stdin);
-							sscanf(get, "%d", &resultado);
-							if (resultado == 1) {
-								nombreProducto = codigoProductoModificar();
-								nuevaCantidad = nuevaCantidadProducto();
-								sqlite3_open(nombd, &db);
-								modificarCantidadProductoBD(db,
-										nombreProducto.cod_p, nuevaCantidad);
-								sqlite3_close(db);
-								break;
-							}
-
-							 *
-							 */
 							sqlite3_open(nombd, &db);
 							mostrarProductosBD(db);
 							sqlite3_close(db);
+							recv(comm_socket, recvBuff, sizeof(recvBuff), 0); //Recibe el tipo
+							sscanf(recvBuff, "%i", &nuevaCantidad);
+							recv(comm_socket, recvBuff, sizeof(recvBuff), 0); //Recibe el codigo
+							sprintf(modificarP.cod_p, "%s", recvBuff);
+							sqlite3_open(nombd, &db);
+							modificarCantidadProductoBD(db, modificarP.cod_p,
+									nuevaCantidad);
+							sqlite3_close(db);
 							break;
 						case 3:
-
+							sqlite3_open(nombd, &db);
+							mostrarProductosBD(db);
+							sqlite3_close(db);
+							recv(comm_socket, recvBuff, sizeof(recvBuff), 0); //Recibe el codigo
+							sprintf(eliminarP.cod_p, "%s", recvBuff);
+							sqlite3_open(nombd, &db);
+							borrarProductoBD(db, eliminarP.cod_p);
+							sqlite3_close(db);
 							break;
 						case 4:
-//							sqlite3_open(nombd, &db);
-							imprimirListaProductos(productoBD);
-//							sqlite3_close(db);
+//							imprimirListaProductos(productoBD);
+							enviarListaProductos(productoBD, comm_socket,
+									sendBuff);
 							break;
 						case 5:
+							enviarListaProductos(productoBD, comm_socket,
+									sendBuff);
 							break;
 
 						}

@@ -19,7 +19,7 @@ int volcarAListaProductosBD(sqlite3 *db, ListaProductos *lp);
 int devolverProductoBD(sqlite3 *db,Producto p);
 
 //ESTADISTICAS
-int buscarProductoCaro(sqlite3 *db);
+Producto buscarProductoCaro(sqlite3 *db);
 int numeroProductosCategoria(sqlite3 *db);
 int productoMayorCantidad(sqlite3 *db);
 
