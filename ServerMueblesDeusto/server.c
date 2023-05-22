@@ -223,6 +223,7 @@ int main(int argc, char *argv[]) {
 						sscanf(recvBuff, "%i", &opcion2);
 						switch (opcion2) {
 						case 1:
+
 							break;
 						case 2:
 							enviarListaProductos(productoBD, comm_socket,
@@ -243,7 +244,10 @@ int main(int argc, char *argv[]) {
 									sendBuff);
 							break;
 						case 4:
-//							imprimirListaProductos(productoBD);
+							enviarListaProductos(productoBD, comm_socket,
+																sendBuff);
+
+							//imprimirListaProductos(productoBD);
 //							recv(comm_socket, recvBuff, sizeof(recvBuff), 0);
 //							sscanf(recvBuff, "%i", &categoria);
 //							if (categoria == 0) {
@@ -306,8 +310,8 @@ int main(int argc, char *argv[]) {
 							sqlite3_open(nombd, &db);
 							insertarProductoBD(db, nuevoProducto);
 							sqlite3_close(db);
-							printf("SE ha intentado");
-							fflush(stdout);
+//							printf("SE ha intentado");
+//							fflush(stdout);
 							anadirProductoLista(&productoBD, nuevoProducto);
 							break;
 						case 2:
