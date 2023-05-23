@@ -3,8 +3,6 @@
 #include <string.h>
 #include "cliente.h"
 
-//#include "menus.h"
-
 Cliente registro() {
 	char get[20] = "";
 	Cliente c;
@@ -27,13 +25,11 @@ Cliente registro() {
 
 }
 
-
 void anadirClientesALista(ListaClientes *lc, Cliente nuevoCliente) {
 	lc->aClientes = realloc(lc->aClientes, sizeof(Cliente) * (lc->numC + 1));
 	lc->aClientes[lc->numC] = nuevoCliente;
 	lc->numC++;
 }
-
 
 void imprimirListaClientes(ListaClientes lc) {
 	printf("Lista de clientes de MueblesDeusto: \n");
@@ -50,7 +46,6 @@ void imprimirListaClientes(ListaClientes lc) {
 
 	}
 }
-
 
 void volcarFicheroAListaClientes(ListaClientes *lc, char *nombreFichero) {
 	FILE *pf;
@@ -76,25 +71,25 @@ void volcarListaClientesAFichero(ListaClientes *lc, char *nombreFichero) {
 	FILE *pf;
 	pf = fopen(nombreFichero, "w");
 	if (pf != (FILE*) NULL) {
-		fprintf(pf, "%d\n", lc->numC);fflush(stdout);
+		fprintf(pf, "%d\n", lc->numC);
+		fflush(stdout);
 		for (int i = 0; i < lc->numC; i++) {
 			fprintf(pf, "%s %s %s \n", lc->aClientes[i].dni,
-					lc->aClientes[i].usuario, lc->aClientes[i].contrasena);fflush(stdout);
+					lc->aClientes[i].usuario, lc->aClientes[i].contrasena);
+			fflush(stdout);
 		}
 		fclose(pf);
 	}
 }
 
-
-char* buscarDniUsuario(ListaClientes lista, char* nombreUsuario) {
-    for (int i = 0; i < lista.numC; i++) {
-        if (strcmp(lista.aClientes[i].usuario, nombreUsuario) == 0) {
-            return lista.aClientes[i].dni;
-        }
-    }
-    return NULL;
+char* buscarDniUsuario(ListaClientes lista, char *nombreUsuario) {
+	for (int i = 0; i < lista.numC; i++) {
+		if (strcmp(lista.aClientes[i].usuario, nombreUsuario) == 0) {
+			return lista.aClientes[i].dni;
+		}
+	}
+	return NULL;
 }
-
 
 void liberarMemoria(ListaClientes *lc) {
 	free(lc->aClientes);

@@ -3,6 +3,12 @@
 #include <string.h>
 #include "producto.h"
 
+//OTROS:
+void quitarSalto(char *cad) {
+	if (cad[strlen(cad) - 1] == '\n')
+		cad[strlen(cad) - 1] = '\0';
+}
+
 //ADMINISTRADOR:
 void anadirProducto(ListaProductos *lp) {
 	char get[20] = "";
@@ -32,6 +38,74 @@ void anadirProducto(ListaProductos *lp) {
 	fflush(stdin);
 }
 
+Producto anadirProductoBD() {
+	char get[20] = "";
+	Producto p;
+	printf("\nIntroduce los datos del nuevo producto: \n");
+	fflush(stdout);
+	printf("Codigo: ");
+	fflush(stdout);
+	fflush(stdin);
+	fgets(get, 20, stdin);
+	quitarSalto(get);
+	sscanf(get, "%s", p.cod_p);
+	printf("Nombre: ");
+	fflush(stdout);
+	fflush(stdin);
+	fgets(get, 20, stdin);
+	quitarSalto(get);
+	sscanf(get, "%s", p.nombre);
+	printf("Descripcion: ");
+	fflush(stdout);
+	fflush(stdin);
+	fgets(get, 20, stdin);
+	quitarSalto(get);
+	sscanf(get, "%s", p.descripcion);
+	printf("Cantidad: ");
+	fflush(stdout);
+	fflush(stdin);
+	fgets(get, 20, stdin);
+	quitarSalto(get);
+	sscanf(get, "%d", &p.cantidad);
+	printf("Precio: ");
+	fflush(stdout);
+	fflush(stdin);
+	fgets(get, 20, stdin);
+	quitarSalto(get);
+	sscanf(get, "%lf", &p.precio);
+	printf("Categoria: ");
+	fflush(stdout);
+	fflush(stdin);
+	fgets(get, 20, stdin);
+	quitarSalto(get);
+	sscanf(get, "%d", &p.tipo);
+	return p;
+}
+
+void anadirProductoLista(ListaProductos *lp, Producto p) {
+	if (lp == NULL) {
+		printf("Error: Lista de productos no válida.\n");
+		return;
+	}
+
+	lp->aProductos = realloc(lp->aProductos,
+			(lp->numProductos + 1) * sizeof(Producto));
+	if (lp->aProductos == NULL) {
+		printf("Error: No se pudo asignar memoria para el nuevo producto.\n");
+		return;
+	}
+
+	Producto *nuevoProducto = &(lp->aProductos[lp->numProductos]);
+	strcpy(nuevoProducto->cod_p, p.cod_p);
+	strcpy(nuevoProducto->nombre, p.nombre);
+	strcpy(nuevoProducto->descripcion, p.descripcion);
+	nuevoProducto->cantidad = p.cantidad;
+	nuevoProducto->precio = p.precio;
+	nuevoProducto->tipo = p.tipo;
+
+	lp->numProductos++;
+}
+
 ListaProductos buscarProducto(ListaProductos lp, CategoriaProducto c) {
 	ListaProductos lpCategoria;
 	lpCategoria.numProductos = 0;
@@ -46,6 +120,62 @@ ListaProductos buscarProducto(ListaProductos lp, CategoriaProducto c) {
 		}
 	}
 	return lpCategoria;
+}
+
+void volcarFicheroAListaProductos(ListaProductos *lp, char *nombreFichero) {
+	FILE *pf;
+	int tam;
+	int cat;
+	lp->numProductos = 0;
+	pf = fopen(nombreFichero, "r");
+	if (pf != (FILE*) NULL) {
+		fscanf(pf, "%d", &tam);
+		fflush(stdout);
+		lp->aProductos = (Producto*) malloc(tam * sizeof(Producto));
+		while (fscanf(pf, "%s%s%s%d%lf%d",
+				lp->aProductos[lp->numProductos].cod_p,
+				lp->aProductos[lp->numProductos].nombre,
+				lp->aProductos[lp->numProductos].descripcion,
+				&(lp->aProductos[lp->numProductos].cantidad),
+				&(lp->aProductos[lp->numProductos].precio), &cat) != EOF) {
+
+			lp->aProductos[lp->numProductos].tipo = (CategoriaProducto) cat;
+			lp->numProductos++;
+		}
+		fclose(pf);
+	} else {
+		lp->aProductos = NULL;
+		return;
+	}
+
+}
+
+void enviarListaProductos(ListaProductos lp, SOCKET comm_socket, char *sendBuff) {
+	printf("\nLista de productos de MueblesDeusto: \n");
+	fflush(stdout);
+	sprintf(sendBuff, "%d", lp.numProductos);
+	send(comm_socket, sendBuff, sizeof(sendBuff), 0);
+	printf("Enviando: %s", sendBuff);
+	for (int i = 0; i < lp.numProductos; i++) {
+		sendBuff[0] = '\0';
+		sprintf(sendBuff, "%s", lp.aProductos[i].cod_p);
+		send(comm_socket, sendBuff, sizeof(sendBuff), 0);
+		sendBuff[0] = '\0';
+		sprintf(sendBuff, "%s", lp.aProductos[i].nombre);
+		send(comm_socket, sendBuff, sizeof(sendBuff), 0);
+		sendBuff[0] = '\0';
+		sprintf(sendBuff, "%s", lp.aProductos[i].descripcion);
+		send(comm_socket, sendBuff, sizeof(sendBuff), 0);
+		sendBuff[0] = '\0';
+		sprintf(sendBuff, "%i", lp.aProductos[i].cantidad);
+		send(comm_socket, sendBuff, sizeof(sendBuff), 0);
+		sendBuff[0] = '\0';
+		sprintf(sendBuff, "%lf", lp.aProductos[i].precio);
+		send(comm_socket, sendBuff, sizeof(sendBuff), 0);
+		sendBuff[0] = '\0';
+		sprintf(sendBuff, "%i", lp.aProductos[i].tipo);
+		send(comm_socket, sendBuff, sizeof(sendBuff), 0);
+	}
 }
 
 //CLIENTE
@@ -100,75 +230,6 @@ void imprimirListaProductos(ListaProductos lp) {
 				obtenerNombreCategoria(lp.aProductos[i].tipo));
 		fflush(stdout);
 	}
-}
-
-void enviarListaProductos(ListaProductos lp, SOCKET comm_socket, char *sendBuff) {
-	printf("\nLista de productos de MueblesDeusto: \n");
-	fflush(stdout);
-	sprintf(sendBuff, "%d", lp.numProductos);
-	send(comm_socket, sendBuff, sizeof(sendBuff), 0);
-	printf("Enviando: %s", sendBuff);
-	for (int i = 0; i < lp.numProductos; i++) {
-		sendBuff[0]='\0';
-		sprintf(sendBuff, "%s", lp.aProductos[i].cod_p);
-		send(comm_socket, sendBuff, sizeof(sendBuff), 0);
-		sendBuff[0]='\0';
-		sprintf(sendBuff, "%s", lp.aProductos[i].nombre);
-		send(comm_socket, sendBuff, sizeof(sendBuff), 0);
-		sendBuff[0]='\0';
-		sprintf(sendBuff, "%s", lp.aProductos[i].descripcion);
-		send(comm_socket, sendBuff, sizeof(sendBuff), 0);
-		sendBuff[0]='\0';
-		sprintf(sendBuff, "%i",  lp.aProductos[i].cantidad);
-		send(comm_socket, sendBuff, sizeof(sendBuff), 0);
-		sendBuff[0]='\0';
-		sprintf(sendBuff, "%lf",  lp.aProductos[i].precio);
-		send(comm_socket, sendBuff, sizeof(sendBuff), 0);
-		sendBuff[0]='\0';
-		sprintf(sendBuff, "%i",  lp.aProductos[i].tipo);
-		send(comm_socket, sendBuff, sizeof(sendBuff), 0);
-
-//		printf("Enviando: %s", sendBuff);
-		/*printf("NOMBRE: %s, ", lp.aProductos[i].nombre);
-		 fflush(stdout);
-		 printf("DESCRIPCION: %s, ", lp.aProductos[i].descripcion);
-		 fflush(stdout);
-		 printf("CANTIDAD: %d, ", lp.aProductos[i].cantidad);
-		 fflush(stdout);
-		 printf("PRECIO: %.2f, ", lp.aProductos[i].precio);
-		 fflush(stdout);
-		 printf("CATEGORIA: %s]\n",
-		 obtenerNombreCategoria(lp.aProductos[i].tipo));
-		 fflush(stdout);*/
-	}
-}
-
-void volcarFicheroAListaProductos(ListaProductos *lp, char *nombreFichero) {
-	FILE *pf;
-	int tam;
-	int cat;
-	lp->numProductos = 0;
-	pf = fopen(nombreFichero, "r");
-	if (pf != (FILE*) NULL) {
-		fscanf(pf, "%d", &tam);
-		fflush(stdout);
-		lp->aProductos = (Producto*) malloc(tam * sizeof(Producto));
-		while (fscanf(pf, "%s%s%s%d%lf%d",
-				lp->aProductos[lp->numProductos].cod_p,
-				lp->aProductos[lp->numProductos].nombre,
-				lp->aProductos[lp->numProductos].descripcion,
-				&(lp->aProductos[lp->numProductos].cantidad),
-				&(lp->aProductos[lp->numProductos].precio), &cat) != EOF) {
-
-			lp->aProductos[lp->numProductos].tipo = (CategoriaProducto) cat;
-			lp->numProductos++;
-		}
-		fclose(pf);
-	} else {
-		lp->aProductos = NULL;
-		return;
-	}
-
 }
 
 Producto nombreProductoBorrar() {
@@ -234,54 +295,6 @@ Producto codigoProductoModificar() {
 	return p;
 }
 
-void quitarSalto(char *cad) {
-	if (cad[strlen(cad) - 1] == '\n')
-		cad[strlen(cad) - 1] = '\0';
-}
-
-Producto anadirProductoBD() {
-	char get[20] = "";
-	Producto p;
-	printf("\nIntroduce los datos del nuevo producto: \n");
-	fflush(stdout);
-	printf("Codigo: ");
-	fflush(stdout);
-	fflush(stdin);
-	fgets(get, 20, stdin);
-	quitarSalto(get);
-	sscanf(get, "%s", p.cod_p);
-	printf("Nombre: ");
-	fflush(stdout);
-	fflush(stdin);
-	fgets(get, 20, stdin);
-	quitarSalto(get);
-	sscanf(get, "%s", p.nombre);
-	printf("Descripcion: ");
-	fflush(stdout);
-	fflush(stdin);
-	fgets(get, 20, stdin);
-	quitarSalto(get);
-	sscanf(get, "%s", p.descripcion);
-	printf("Cantidad: ");
-	fflush(stdout);
-	fflush(stdin);
-	fgets(get, 20, stdin);
-	quitarSalto(get);
-	sscanf(get, "%d", &p.cantidad);
-	printf("Precio: ");
-	fflush(stdout);
-	fflush(stdin);
-	fgets(get, 20, stdin);
-	quitarSalto(get);
-	sscanf(get, "%lf", &p.precio);
-	printf("Categoria: ");
-	fflush(stdout);
-	fflush(stdin);
-	fgets(get, 20, stdin);
-	quitarSalto(get);
-	sscanf(get, "%d", &p.tipo);
-	return p;
-}
 int buscarProductoCategoria() {
 	int opcion;
 
@@ -305,26 +318,3 @@ Producto* buscarProd(ListaProductos lista, char *codigo) {
 	return p;
 }
 
-void anadirProductoLista(ListaProductos *lp, Producto p) {
-	if (lp == NULL) {
-		printf("Error: Lista de productos no válida.\n");
-		return;
-	}
-
-	lp->aProductos = realloc(lp->aProductos,
-			(lp->numProductos + 1) * sizeof(Producto));
-	if (lp->aProductos == NULL) {
-		printf("Error: No se pudo asignar memoria para el nuevo producto.\n");
-		return;
-	}
-
-	Producto *nuevoProducto = &(lp->aProductos[lp->numProductos]);
-	strcpy(nuevoProducto->cod_p, p.cod_p);
-	strcpy(nuevoProducto->nombre, p.nombre);
-	strcpy(nuevoProducto->descripcion, p.descripcion);
-	nuevoProducto->cantidad = p.cantidad;
-	nuevoProducto->precio = p.precio;
-	nuevoProducto->tipo = p.tipo;
-
-	lp->numProductos++;
-}

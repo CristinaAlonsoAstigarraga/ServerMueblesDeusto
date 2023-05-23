@@ -11,8 +11,9 @@
 #define SERVER_IP "127.0.0.1"
 #define SERVER_PORT 6000
 
-//prueba
-
+/**
+ * Método para leer el fichero de configuración que permite realizar la conexión a la base de datos.
+ */
 void leerConfig(char *nomfich, char *nombd) {
 	FILE *pf;
 
@@ -24,8 +25,8 @@ void leerConfig(char *nomfich, char *nombd) {
 }
 
 int main(int argc, char *argv[]) {
-	/*AÑADIMOS LO NECESARIO PARA LA BBDD*/
 
+	/*AÑADIMOS LO NECESARIO PARA LA BBDD*/
 	sqlite3 *db;
 	char nombd[50];
 
@@ -104,28 +105,28 @@ int main(int argc, char *argv[]) {
 	closesocket(conn_socket);
 	int fin = 0;
 
-	Producto modificarP;
-	Producto eliminarP;
-	Producto caro;
-	Producto mayorCantidad;
+	/* EMPIEZA EL PROGRAMA DEL SERVIDOR*/
+
+	//Lista de Clientes:
 	ListaClientes lc;
 	lc.numC = 0;
 	ListaClientes admin;
-	Producto codigoProductoDevolver;
-	ListaProductos listaCategoria;
-	//CLIENTES
+
+	//Clientes:
 	volcarFicheroAListaClientes(&lc, "Clientes.txt");
-//	imprimirListaClientes(lc);
-	int categoria;
 
-	//ADMINISTRADORES
-
+	//Administradores:
 	volcarFicheroAListaClientes(&admin, "Administradores.txt");
 
+	//Lista de Productos:
 	ListaProductos productoBD;
-//	productoBD.numProductos = 0;
-//	productoBD.aProductos = NULL;
 
+	//Productos:
+	Producto modificarP;
+	Producto eliminarP;
+	Producto codigoProductoDevolver;
+
+	//Abrimos la BBDD para poder volcar los productos que hay en la misma a una Lista de Productos.
 	rc = sqlite3_open(nombd, &db);
 	if (rc != SQLITE_OK) {
 		printf("Error abriendo la base de datos: %s\n", sqlite3_errmsg(db));
@@ -135,26 +136,19 @@ int main(int argc, char *argv[]) {
 	}
 
 	volcarAListaProductosBD(db, &productoBD);
-//	imprimirListaProductos(productoBD);
 	sqlite3_close(db);
 
-//	printf("Número de productos de la lista: %i\n", productoBD.numProductos);
-//	fflush(stdout);
-//	for(int i=0; i<productoBD.numProductos; i++){
-//		printf("\n", productoBD.aProductos[i].cod_p);fflush(stdout);
-//	}
+	//MENÚ PRINCIPAL
 	do {
-		/*EMPIEZA EL PROGRAMA DEL SERVIDOR*/
-		int opcion, opcion2;
+		//Enteros, doubles y cadenas:
+		int opcion, opcion2, cantidad, tipo, i, clienteExiste, adminExiste, nuevaCantidad;
 		char dni[20], nom[20], con[20], cod[20], desc[20];
-		int cantidad, tipo, modif;
 		double precio = 0;
-		int resul, i, clienteExiste, adminExiste, nuevaCantidad;
 		do {
 			recv(comm_socket, recvBuff, sizeof(recvBuff), 0);
 			sscanf(recvBuff, "%i", &opcion);
 			switch (opcion) {
-			case 1:
+			case 1: //REGISTRO DE UN NUEVO CLIENTE
 				recv(comm_socket, recvBuff, sizeof(recvBuff), 0); //Recibe el dni
 				sprintf(dni, "%s", recvBuff);
 				clienteExiste = 0;
@@ -169,7 +163,7 @@ int main(int argc, char *argv[]) {
 				if (!clienteExiste) {
 					recv(comm_socket, recvBuff, sizeof(recvBuff), 0); //Recibe el nombre
 					sprintf(nom, "%s", recvBuff);
-					recv(comm_socket, recvBuff, sizeof(recvBuff), 0); //Recibe el nombre
+					recv(comm_socket, recvBuff, sizeof(recvBuff), 0); //Recibe la contraseña
 					sprintf(con, "%s", recvBuff);
 					Cliente nuevoCliente;
 					strcpy(nuevoCliente.dni, dni);
@@ -184,7 +178,7 @@ int main(int argc, char *argv[]) {
 					fflush(stdout);
 				}
 				break;
-			case 2:
+			case 2:	//INICIO DE SESIÓN (DE CLIENTE O DE ADMIN)
 				clienteExiste = 0;
 				adminExiste = 0;
 				recv(comm_socket, recvBuff, sizeof(recvBuff), 0); //Recibe el nombre
@@ -219,15 +213,15 @@ int main(int argc, char *argv[]) {
 				sprintf(sendBuff, "%d", adminExiste);
 				send(comm_socket, sendBuff, sizeof(sendBuff), 0);
 
-				if (clienteExiste) {
+				if (clienteExiste) { //INICIO DE SESIÓN DE CLIENTE Y SU MENÚ
 					do {
 						recv(comm_socket, recvBuff, sizeof(recvBuff), 0);
 						sscanf(recvBuff, "%i", &opcion2);
 						switch (opcion2) {
-						case 1:
+						case 1: //VISUALIZAR EL CARRITO DE LA COMPRA
 
 							break;
-						case 2:
+						case 2: //DEVOLVER UN PRODUCTO
 							enviarListaProductos(productoBD, comm_socket,
 									sendBuff);
 							recv(comm_socket, recvBuff, sizeof(recvBuff), 0); //Recibe el codigo del producto a devolver
@@ -241,52 +235,23 @@ int main(int argc, char *argv[]) {
 							devolverProductoBD(db, codigoProductoDevolver);
 							sqlite3_close(db);
 							break;
-						case 3:
+						case 3: //VISUALIZAR TODOS LOS PRODUCTOS DE LA TIENDA
 							enviarListaProductos(productoBD, comm_socket,
 									sendBuff);
 							break;
-						case 4:
+						case 4: //BUSCAR UN PRODUCTO EN LA TIENDA - POR CATEGORIAS
 							enviarListaProductos(productoBD, comm_socket,
-																sendBuff);
-
-							//imprimirListaProductos(productoBD);
-//							recv(comm_socket, recvBuff, sizeof(recvBuff), 0);
-//							sscanf(recvBuff, "%i", &categoria);
-//							if (categoria == 0) {
-//								sqlite3_open(nombd, &db);
-//								devolverProductoBD(db, codigoProductoDevolver);
-//								sqlite3_close(db);
-//							} else if (categoria == 1) {
-//								sqlite3_open(nombd, &db);
-//								devolverProductoBD(db, codigoProductoDevolver);
-//								sqlite3_close(db);
-//							} else if (categoria == 2) {
-//								sqlite3_open(nombd, &db);
-//								devolverProductoBD(db, codigoProductoDevolver);
-//								sqlite3_close(db);
-//							} else {
-//								printf(
-//										"Error, no ha introducido una categoria válida. ")
-//							}
-//							sqlite3_open(nombd, &db);
-//							mostrarProductosCategoriaBDLista(db, codigoProductoDevolver);
-//							sqlite3_close(db);
-//							enviarListaProductos(listaCategoria, comm_socket,
-//																sendBuff);
-
+									sendBuff);
 							break;
-						case 5:
-							break;
-
 						}
 					} while (opcion != 0);
 
-				} else if (adminExiste) {
+				} else if (adminExiste) { //INICIO DE SESIÓN ADMINISTRADOR Y SU MENÚ
 					do {
 						recv(comm_socket, recvBuff, sizeof(recvBuff), 0);
 						sscanf(recvBuff, "%i", &opcion2);
 						switch (opcion2) {
-						case 1:
+						case 1: //AÑADIR UN PRODUCTO A LA BBDD DE LA TIENDA
 							printf("Servidor, opción 2\n");
 							//Recibe los datos del nuevo producto para añadir a la BD
 							recv(comm_socket, recvBuff, sizeof(recvBuff), 0); //Recibe el codigo
@@ -308,43 +273,39 @@ int main(int argc, char *argv[]) {
 							nuevoProducto.cantidad = cantidad;
 							nuevoProducto.precio = precio;
 							nuevoProducto.tipo = tipo;
-							//sqlite3_open(nombd, &db);
 							sqlite3_open(nombd, &db);
 							insertarProductoBD(db, nuevoProducto);
 							sqlite3_close(db);
-//							printf("SE ha intentado");
-//							fflush(stdout);
 							anadirProductoLista(&productoBD, nuevoProducto);
 							break;
-						case 2:
+						case 2: //MODIFICAR UN PRODUCTO DE LA BBDD DE LA TIENDA
 							sqlite3_open(nombd, &db);
 							mostrarProductosBD(db);
 							sqlite3_close(db);
-							recv(comm_socket, recvBuff, sizeof(recvBuff), 0); //Recibe el tipo
+							recv(comm_socket, recvBuff, sizeof(recvBuff), 0); //Recibe la nueva cantidad para el producto
 							sscanf(recvBuff, "%i", &nuevaCantidad);
-							recv(comm_socket, recvBuff, sizeof(recvBuff), 0); //Recibe el codigo
+							recv(comm_socket, recvBuff, sizeof(recvBuff), 0); //Recibe el codigo del producto a modificar
 							sprintf(modificarP.cod_p, "%s", recvBuff);
 							sqlite3_open(nombd, &db);
 							modificarCantidadProductoBD(db, modificarP.cod_p,
 									nuevaCantidad);
 							sqlite3_close(db);
 							break;
-						case 3:
+						case 3: //ELIMINAR UN PRODUCTO DE LA BBDD DE LA TIENDA
 							sqlite3_open(nombd, &db);
 							mostrarProductosBD(db);
 							sqlite3_close(db);
-							recv(comm_socket, recvBuff, sizeof(recvBuff), 0); //Recibe el codigo
+							recv(comm_socket, recvBuff, sizeof(recvBuff), 0); //Recibe el codigo del producto a eliminar
 							sprintf(eliminarP.cod_p, "%s", recvBuff);
 							sqlite3_open(nombd, &db);
 							borrarProductoBD(db, eliminarP.cod_p);
 							sqlite3_close(db);
 							break;
-						case 4:
-//							imprimirListaProductos(productoBD);
+						case 4: //MOSTRAR EL ALMACEN DE LA TIENDA (LOS PRODUCTOS DE LA BBDD)
 							enviarListaProductos(productoBD, comm_socket,
 									sendBuff);
 							break;
-						case 5:
+						case 5: //MOSTRAR LAS ESTADÍSTICAS DE LA TIENDA
 							enviarListaProductos(productoBD, comm_socket,
 									sendBuff);
 							break;
