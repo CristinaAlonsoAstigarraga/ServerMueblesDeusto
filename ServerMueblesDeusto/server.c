@@ -120,6 +120,9 @@ int main(int argc, char *argv[]) {
 
 	//Lista de Productos:
 	ListaProductos productoBD;
+	ListaProductos acutalizadaModificado;
+	ListaProductos acutalizadaBorrado;
+	ListaProductos mostrarAlmacen;
 
 	//Productos:
 	Producto modificarP;
@@ -141,7 +144,8 @@ int main(int argc, char *argv[]) {
 	//MENÚ PRINCIPAL
 	do {
 		//Enteros, doubles y cadenas:
-		int opcion, opcion2, cantidad, tipo, i, clienteExiste, adminExiste, nuevaCantidad;
+		int opcion, opcion2, cantidad, tipo, i, clienteExiste, adminExiste,
+				nuevaCantidad;
 		char dni[20], nom[20], con[20], cod[20], desc[20];
 		double precio = 0;
 		do {
@@ -171,10 +175,6 @@ int main(int argc, char *argv[]) {
 					strcpy(nuevoCliente.contrasena, con);
 					anadirClientesALista(&lc, nuevoCliente);
 					volcarListaClientesAFichero(&lc, "Clientes.txt");
-					printf("Añadido\n");
-					fflush(stdout);
-				} else {
-					printf("Cliente ya existe\n");
 					fflush(stdout);
 				}
 				break;
@@ -185,7 +185,7 @@ int main(int argc, char *argv[]) {
 				sprintf(nom, "%s", recvBuff);
 				recv(comm_socket, recvBuff, sizeof(recvBuff), 0); //Recibe la contrase�a
 				sprintf(con, "%s", recvBuff);
-				//La busc�is en la BBDD
+				//La buscamos en la BBDD
 				for (i = 0; i < lc.numC; i++) {
 					if ((strcmp(nom, lc.aClientes[i].usuario) == 0)
 							&& (strcmp(con, lc.aClientes[i].contrasena) == 0)) {
@@ -236,6 +236,9 @@ int main(int argc, char *argv[]) {
 							sqlite3_close(db);
 							break;
 						case 3: //VISUALIZAR TODOS LOS PRODUCTOS DE LA TIENDA
+							sqlite3_open(nombd, &db);
+							volcarAListaProductosBD(db, &productoBD);
+							sqlite3_close(db);
 							enviarListaProductos(productoBD, comm_socket,
 									sendBuff);
 							break;
@@ -252,7 +255,6 @@ int main(int argc, char *argv[]) {
 						sscanf(recvBuff, "%i", &opcion2);
 						switch (opcion2) {
 						case 1: //AÑADIR UN PRODUCTO A LA BBDD DE LA TIENDA
-							printf("Servidor, opción 2\n");
 							//Recibe los datos del nuevo producto para añadir a la BD
 							recv(comm_socket, recvBuff, sizeof(recvBuff), 0); //Recibe el codigo
 							sprintf(cod, "%s", recvBuff);
@@ -279,9 +281,8 @@ int main(int argc, char *argv[]) {
 							anadirProductoLista(&productoBD, nuevoProducto);
 							break;
 						case 2: //MODIFICAR UN PRODUCTO DE LA BBDD DE LA TIENDA
-							sqlite3_open(nombd, &db);
-							mostrarProductosBD(db);
-							sqlite3_close(db);
+							enviarListaProductos(productoBD, comm_socket,
+									sendBuff);
 							recv(comm_socket, recvBuff, sizeof(recvBuff), 0); //Recibe la nueva cantidad para el producto
 							sscanf(recvBuff, "%i", &nuevaCantidad);
 							recv(comm_socket, recvBuff, sizeof(recvBuff), 0); //Recibe el codigo del producto a modificar
@@ -289,20 +290,28 @@ int main(int argc, char *argv[]) {
 							sqlite3_open(nombd, &db);
 							modificarCantidadProductoBD(db, modificarP.cod_p,
 									nuevaCantidad);
+							volcarAListaProductosBD(db, &productoBD);
 							sqlite3_close(db);
+							enviarListaProductos(productoBD, comm_socket,
+									sendBuff);
 							break;
 						case 3: //ELIMINAR UN PRODUCTO DE LA BBDD DE LA TIENDA
-							sqlite3_open(nombd, &db);
-							mostrarProductosBD(db);
-							sqlite3_close(db);
+							enviarListaProductos(productoBD, comm_socket,
+									sendBuff);
 							recv(comm_socket, recvBuff, sizeof(recvBuff), 0); //Recibe el codigo del producto a eliminar
 							sprintf(eliminarP.cod_p, "%s", recvBuff);
 							sqlite3_open(nombd, &db);
 							borrarProductoBD(db, eliminarP.cod_p);
+							volcarAListaProductosBD(db, &productoBD);
 							sqlite3_close(db);
+							enviarListaProductos(productoBD, comm_socket,
+									sendBuff);
 							break;
 						case 4: //MOSTRAR EL ALMACEN DE LA TIENDA (LOS PRODUCTOS DE LA BBDD)
-							enviarListaProductos(productoBD, comm_socket,
+							sqlite3_open(nombd, &db);
+							volcarAListaProductosBD(db, &mostrarAlmacen);
+							sqlite3_close(db);
+							enviarListaProductos(mostrarAlmacen, comm_socket,
 									sendBuff);
 							break;
 						case 5: //MOSTRAR LAS ESTADÍSTICAS DE LA TIENDA

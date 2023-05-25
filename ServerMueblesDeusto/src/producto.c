@@ -151,15 +151,14 @@ void volcarFicheroAListaProductos(ListaProductos *lp, char *nombreFichero) {
 }
 
 void enviarListaProductos(ListaProductos lp, SOCKET comm_socket, char *sendBuff) {
-	printf("\nLista de productos de MueblesDeusto: \n");
-	fflush(stdout);
-	sprintf(sendBuff, "%d", lp.numProductos);
+	sprintf(sendBuff, "%i", lp.numProductos);
 	send(comm_socket, sendBuff, sizeof(sendBuff), 0);
-	printf("Enviando: %s", sendBuff);
+	printf("Enviado :%s\n", sendBuff);
 	for (int i = 0; i < lp.numProductos; i++) {
 		sendBuff[0] = '\0';
 		sprintf(sendBuff, "%s", lp.aProductos[i].cod_p);
-		send(comm_socket, sendBuff, sizeof(sendBuff), 0);
+		send(comm_socket, sendBuff, (sizeof(sendBuff)), 0);
+		printf("Enviado: %s\n", sendBuff);fflush(stdout);
 		sendBuff[0] = '\0';
 		sprintf(sendBuff, "%s", lp.aProductos[i].nombre);
 		send(comm_socket, sendBuff, sizeof(sendBuff), 0);
@@ -189,8 +188,6 @@ void devolverProducto(ListaProductos *lp, Producto nombreProducto) {
 			break;
 		}
 	}
-	printf("\nDevolucion finalizada. \n");
-	fflush(stdout);
 }
 
 void visualizarTienda(ListaProductos lp) {
